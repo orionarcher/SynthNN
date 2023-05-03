@@ -685,19 +685,21 @@ xtr, ytr, batch_data, weights, idxs = get_batch(
     batch_size, neg_pos_ratio, use_semi_weights=False, model_name=model_name_params
 )
 
-x = tf.placeholder(tf.float32, shape=[None, xtr.shape[1]])
-y_ = tf.placeholder(tf.float32, shape=[None, 2])
+x = tf.compat.v1.placeholder(tf.float32, shape=[None, xtr.shape[1]])
+y_ = tf.compat.v1.placeholder(tf.float32, shape=[None, 2])
 
-W1 = tf.Variable(tf.truncated_normal([xtr.shape[1], M], 0, 3))  # shape, mean, std
-F1 = tf.Variable(tf.truncated_normal([M, no_h1], 0, 1))
-F2 = tf.Variable(tf.truncated_normal([no_h1, no_h2], 0, 1))
-F3 = tf.Variable(tf.truncated_normal([no_h2, 2], 0, 1))
-b1 = tf.Variable(tf.truncated_normal([no_h1], 0, 1))
-b2 = tf.Variable(tf.truncated_normal([no_h2], 0, 1))
-b3 = tf.Variable(tf.truncated_normal([2], 0, 1))
-semi_weights = tf.placeholder(tf.float32, shape=[None, 1])
-sess = tf.InteractiveSession()
-sess.run(tf.initialize_all_variables())
+W1 = tf.Variable(
+    tf.random.truncated_normal([xtr.shape[1], M], 0, 3)
+)  # shape, mean, std
+F1 = tf.Variable(tf.random.truncated_normal([M, no_h1], 0, 1))
+F2 = tf.Variable(tf.random.truncated_normal([no_h1, no_h2], 0, 1))
+F3 = tf.Variable(tf.random.truncated_normal([no_h2, 2], 0, 1))
+b1 = tf.Variable(tf.random.truncated_normal([no_h1], 0, 1))
+b2 = tf.Variable(tf.random.truncated_normal([no_h2], 0, 1))
+b3 = tf.Variable(tf.random.truncated_normal([2], 0, 1))
+semi_weights = tf.compat.v1.placeholder(tf.float32, shape=[None, 1])
+sess = tf.compat.v1.InteractiveSession()
+sess.run(tf.compat.v1.initialize_all_variables())
 
 z0_raw = tf.multiply(tf.expand_dims(x, 2), tf.expand_dims(W1, 0))  # (ntr, I, M)
 tempmean, var = tf.nn.moments(z0_raw, axes=[1])
@@ -711,7 +713,8 @@ a3 = tf.nn.softmax(z3)  # (ntr, 2)
 clipped_y = tf.clip_by_value(a3, 1e-10, 1.0)
 cross_entropy = -tf.reduce_sum(
     tf.multiply(
-        y_ * tf.log(clipped_y) * np.array([weight_for_1, weight_for_0]), semi_weights
+        y_ * tf.math.log(clipped_y) * np.array([weight_for_1, weight_for_0]),
+        semi_weights,
     )
 )
 correct_prediction = tf.equal(tf.argmax(a3, 1), tf.argmax(y_, 1))
@@ -722,8 +725,8 @@ element_sum = np.zeros((94, 1))
 epoch_counter = 0
 xtr_new = xtr
 ytr_new = ytr
-train_step = tf.train.AdamOptimizer(tstep).minimize(cross_entropy)
-sess.run(tf.initialize_all_variables())
+train_step = tf.compat.v1.train.AdamOptimizer(tstep).minimize(cross_entropy)
+sess.run(tf.compat.v1.initialize_all_variables())
 full_weights = np.ones((len(ytr), 1))
 best_perf = 0
 xval, yval, val_data = get_batch_val(neg_pos_ratio)
@@ -817,18 +820,20 @@ sess.close()
 
 np.random.seed()
 random.seed()
-x = tf.placeholder(tf.float32, shape=[None, xtr.shape[1]])
-y_ = tf.placeholder(tf.float32, shape=[None, 2])
-W1 = tf.Variable(tf.truncated_normal([xtr.shape[1], M], 0, 3))  # shape, mean, std
-F1 = tf.Variable(tf.truncated_normal([M, no_h1], 0, 1))
-F2 = tf.Variable(tf.truncated_normal([no_h1, no_h2], 0, 1))
-F3 = tf.Variable(tf.truncated_normal([no_h2, 2], 0, 1))
-b1 = tf.Variable(tf.truncated_normal([no_h1], 0, 1))
-b2 = tf.Variable(tf.truncated_normal([no_h2], 0, 1))
-b3 = tf.Variable(tf.truncated_normal([2], 0, 1))
-semi_weights = tf.placeholder(tf.float32, shape=[None, 1])
-sess = tf.InteractiveSession()
-sess.run(tf.initialize_all_variables())
+x = tf.compat.v1.placeholder(tf.float32, shape=[None, xtr.shape[1]])
+y_ = tf.compat.v1.placeholder(tf.float32, shape=[None, 2])
+W1 = tf.Variable(
+    tf.random.truncated_normal([xtr.shape[1], M], 0, 3)
+)  # shape, mean, std
+F1 = tf.Variable(tf.random.truncated_normal([M, no_h1], 0, 1))
+F2 = tf.Variable(tf.random.truncated_normal([no_h1, no_h2], 0, 1))
+F3 = tf.Variable(tf.random.truncated_normal([no_h2, 2], 0, 1))
+b1 = tf.Variable(tf.random.truncated_normal([no_h1], 0, 1))
+b2 = tf.Variable(tf.random.truncated_normal([no_h2], 0, 1))
+b3 = tf.Variable(tf.random.truncated_normal([2], 0, 1))
+semi_weights = tf.compat.v1.placeholder(tf.float32, shape=[None, 1])
+sess = tf.compat.v1.InteractiveSession()
+sess.run(tf.compat.v1.initialize_all_variables())
 z0_raw = tf.multiply(tf.expand_dims(x, 2), tf.expand_dims(W1, 0))  # (ntr, I, M)
 tempmean, var = tf.nn.moments(z0_raw, axes=[1])
 z0 = tf.concat([tf.reduce_sum(z0_raw, 1)], 1)  # (ntr, M)
@@ -839,7 +844,7 @@ a2 = tf.tanh(z2)  # (ntr, no_h1)
 z3 = tf.add(tf.matmul(a2, F3), b3)  # (ntr, 2)
 a3 = tf.nn.softmax(z3)  # (ntr, 2)
 clipped_y = tf.clip_by_value(a3, 1e-10, 1.0)
-cross_entropy = -tf.reduce_sum(tf.multiply(y_ * tf.log(clipped_y), semi_weights))
+cross_entropy = -tf.reduce_sum(tf.multiply(y_ * tf.math.log(clipped_y), semi_weights))
 correct_prediction = tf.equal(tf.argmax(a3, 1), tf.argmax(y_, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 performance_array = []
@@ -847,8 +852,8 @@ loss_array = []
 element_sum = np.zeros((94, 1))
 epoch_counter = 0
 best_perf = 0
-train_step = tf.train.AdamOptimizer(tstep).minimize(cross_entropy)
-sess.run(tf.initialize_all_variables())
+train_step = tf.compat.v1.train.AdamOptimizer(tstep).minimize(cross_entropy)
+sess.run(tf.compat.v1.initialize_all_variables())
 for i in range(num_steps):
     epoch_counter = epoch_counter + 1
     batchx, batchy, batch_data, weights, idxs = get_batch(
