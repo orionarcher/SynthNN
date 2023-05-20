@@ -34,6 +34,8 @@ Requirements:
 - [Pymatgen](https://pymatgen.org/installation.html)
 - [Tensorflow](https://www.tensorflow.org/install)
 
+Alternatively, a conda environment can be made with the provided environment.yml file.
+
 ## Usage
 
 ### Reproduce Figures
@@ -46,11 +48,11 @@ Predicting the synthesizability of a material composition with a pre-trained ver
 
 ## Data
 
-The Synthesizability Dataset used in this work was obtained from the [ICSD API](https://icsd.products.fiz-karlsruhe.de/en/products/icsd-products#icsd+api+service). If the ICSD API is not accessible, all figures can still be reproduced with the pre-processed data given in the "Figure_data" directory.
+The Synthesizability Dataset used in this work was obtained from the [ICSD API](https://icsd.products.fiz-karlsruhe.de/en/products/icsd-products#icsd+api+service). If the ICSD API is not accessible, all figures can still be reproduced with the pre-processed data given in the "Figure_data" directory. The negative examples are provided in the Datasets folder.
 
 ## Authors
 
-This code was primarily written by Evan Antoniuk (antoniuk1@llnl.gov).
+This code was primarily written by Evan Antoniuk (<antoniuk1@llnl.gov>).
 
 ## License
 
