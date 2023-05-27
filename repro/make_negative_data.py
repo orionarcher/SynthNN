@@ -148,4 +148,4 @@ neg_samples = make_negative_data(10_000)
 
 import pandas as pd
 
-pd.Series(neg_samples, name="negative_samples").to_csv("neg_samples.csv", index=False)
+pd.Series(neg_samples, name="formula").to_csv("negative_samples.txt", header=None, index=False, sep=' ')
