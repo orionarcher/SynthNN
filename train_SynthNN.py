@@ -9,6 +9,8 @@ import os
 from pymatgen.core.periodic_table import Element
 import linecache
 
+POSITIVE_SAMPLE_FILE = "repro/icsd_positive.txt"
+NEGATIVE_SAMPLE_FILE = "Datasets/standard_neg_ex_tr_val_v5_balanced_shuffled.txt"
 
 def load_data(data, is_charge_balanced, max_atoms=5, max_coefficient=100000):
     # takes input file (icsd_full_properties_no_frac_charges) and processes the data and applies some filters
@@ -192,7 +194,7 @@ def get_batch_val(neg_positive_ratio):
     noTr = noTr_positives + (noTr_negatives)  # total size of train set
     # only sample from first 90% of dataset ( need to shuffle first because GNN_icsd is alphabetical!)
     data1 = []
-    f = open("icsd_full_data_unique_no_frac_no_penta_2020.txt")
+    f = open(POSITIVE_SAMPLE_FILE)
     i = 0
     for line in f:
         if i > noTr_positives and i < noTr_positives * 1.05:
@@ -201,7 +203,7 @@ def get_batch_val(neg_positive_ratio):
     f.close()
 
     data0 = []
-    f = open("standard_neg_ex_tr_val_v5_balanced_shuffled.txt")
+    f = open(NEGATIVE_SAMPLE_FILE)
     i = 0
     for line in f:
         if i > noTr_negatives and i < noTr_negatives * 1.05:
@@ -280,7 +282,7 @@ def get_batch(
     # only sample from first 90% of dataset ( need to shuffle first because GNN_icsd is alphabetical!)
     data1 = []
     pulled_lines1, idxs1 = random_lines(
-        "icsd_full_data_unique_no_frac_no_penta_2020.txt",
+        POSITIVE_SAMPLE_FILE,
         noTr_positives,
         num_positive_examples,
     )
@@ -288,7 +290,7 @@ def get_batch(
         data1.append(line.replace("\n", ""))
     data0 = []
     pulled_lines0, idxs0 = random_lines(
-        "standard_neg_ex_tr_val_v5_balanced_shuffled.txt",
+        NEGATIVE_SAMPLE_FILE,
         noTr_negatives,
         num_negative_examples,
     )
@@ -554,8 +556,8 @@ sess = tf.compat.v1.InteractiveSession()
 sess.run(tf.compat.v1.initialize_all_variables())
 
 z0_raw = tf.multiply(tf.expand_dims(x, 2), tf.expand_dims(W1, 0))  # (ntr, I, M)
-tempmean, var = tf.nn.moments(z0_raw, axes=[1])
-z0 = tf.concat([tf.reduce_sum(z0_raw, 1)], 1)  # (ntr, M)
+tempmean, var = tf.nn.moments(x=z0_raw, axes=[1])
+z0 = tf.concat([tf.reduce_sum(input_tensor=z0_raw, axis=1)], 1)  # (ntr, M)
 z1 = tf.add(tf.matmul(z0, F1), b1)  # (ntr, no_h1)
 a1 = tf.tanh(z1)  # (ntr, no_h1)
 z2 = tf.add(tf.matmul(a1, F2), b2)  # (ntr,no_h1)
@@ -564,13 +566,13 @@ z3 = tf.add(tf.matmul(a2, F3), b3)  # (ntr, 2)
 a3 = tf.nn.softmax(z3)  # (ntr, 2)
 clipped_y = tf.clip_by_value(a3, 1e-10, 1.0)
 cross_entropy = -tf.reduce_sum(
-    tf.multiply(
+    input_tensor=tf.multiply(
         y_ * tf.math.log(clipped_y) * np.array([weight_for_1, weight_for_0]),
         semi_weights,
     )
 )
-correct_prediction = tf.equal(tf.argmax(a3, 1), tf.argmax(y_, 1))
-accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+correct_prediction = tf.equal(tf.argmax(input=a3, axis=1), tf.argmax(input=y_, axis=1))
+accuracy = tf.reduce_mean(input_tensor=tf.cast(correct_prediction, tf.float32))
 performance_array = []
 loss_array = []
 element_sum = np.zeros((94, 1))
@@ -628,7 +630,7 @@ for i in range(100):
 
 # print out all preds to a file (for weighting for semi-supervised learning)
 file_output = open("semi_weights_testing_pos_30M" + model_name_params + ".txt", "a")
-file_positives = open("icsd_full_data_unique_no_frac_no_penta_2020.txt", "r")
+file_positives = open(POSITIVE_SAMPLE_FILE, "r")
 Lines = file_positives.readlines()
 for line in Lines:
     xtr = get_features([line.replace("\n", "")])
@@ -651,7 +653,7 @@ for line in Lines:
 file_positives.close()
 file_output.close()
 file_output = open("semi_weights_testing_neg_30M" + model_name_params + ".txt", "a")
-file_negatives = open("standard_neg_ex_tr_val_v5_balanced_shuffled.txt", "r")
+file_negatives = open(NEGATIVE_SAMPLE_FILE, "r")
 Lines = file_negatives.readlines()
 for line in Lines:
     xtr = get_features([line.replace("\n", "")])
@@ -697,8 +699,8 @@ sess = tf.compat.v1.InteractiveSession()
 sess.run(tf.compat.v1.initialize_all_variables())
 
 z0_raw = tf.multiply(tf.expand_dims(x, 2), tf.expand_dims(W1, 0))  # (ntr, I, M)
-tempmean, var = tf.nn.moments(z0_raw, axes=[1])
-z0 = tf.concat([tf.reduce_sum(z0_raw, 1)], 1)  # (ntr, M)
+tempmean, var = tf.nn.moments(x=z0_raw, axes=[1])
+z0 = tf.concat([tf.reduce_sum(input_tensor=z0_raw, axis=1)], 1)  # (ntr, M)
 z1 = tf.add(tf.matmul(z0, F1), b1)  # (ntr, no_h1)
 a1 = tf.tanh(z1)  # (ntr, no_h1)
 z2 = tf.add(tf.matmul(a1, F2), b2)  # (ntr,no_h1)
@@ -707,9 +709,9 @@ z3 = tf.add(tf.matmul(a2, F3), b3)  # (ntr, 2)
 a3 = tf.nn.softmax(z3)  # (ntr, 2)
 
 clipped_y = tf.clip_by_value(a3, 1e-10, 1.0)
-cross_entropy = -tf.reduce_sum(tf.multiply(y_ * tf.math.log(clipped_y), semi_weights))
-correct_prediction = tf.equal(tf.argmax(a3, 1), tf.argmax(y_, 1))
-accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+cross_entropy = -tf.reduce_sum(input_tensor=tf.multiply(y_ * tf.math.log(clipped_y), semi_weights))
+correct_prediction = tf.equal(tf.argmax(input=a3, axis=1), tf.argmax(input=y_, axis=1))
+accuracy = tf.reduce_mean(input_tensor=tf.cast(correct_prediction, tf.float32))
 performance_array = []
 loss_array = []
 element_sum = np.zeros((94, 1))
@@ -719,7 +721,7 @@ train_step = tf.compat.v1.train.AdamOptimizer(tstep).minimize(cross_entropy)
 sess.run(tf.compat.v1.initialize_all_variables())
 
 # change to num_steps
-for i in range(1):
+for i in range(num_steps):  # TODO: changed to num_steps
     epoch_counter = epoch_counter + 1
     batchx, batchy, batch_data, weights, idxs = get_batch(
         batch_size, neg_pos_ratio, use_semi_weights=True, model_name=model_name_params
