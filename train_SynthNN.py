@@ -12,6 +12,7 @@ import linecache
 POSITIVE_SAMPLE_FILE = "repro/icsd_positive.txt"
 NEGATIVE_SAMPLE_FILE = "Datasets/standard_neg_ex_tr_val_v5_balanced_shuffled.txt"
 
+
 def load_data(data, is_charge_balanced, max_atoms=5, max_coefficient=100000):
     # takes input file (icsd_full_properties_no_frac_charges) and processes the data and applies some filters
     output_array = []
@@ -596,7 +597,7 @@ b3_val = []
 print("Model Initial Training")
 
 # change to semi_starting
-for i in range(100):
+for i in range(semi_starting):  # TODO: change to semi-starting
     epoch_counter = epoch_counter + 1
     batchx, batchy, batch_data, weights, idxs = get_batch(
         batch_size, neg_pos_ratio, use_semi_weights=False, model_name=model_name_params
