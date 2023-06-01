@@ -3,6 +3,18 @@ import random
 import numpy as np
 from pymatgen.core import Composition
 
+# %%
+with open("../Datasets/standard_neg_ex_tr_val_v5_balanced_shuffled.txt", 'r') as f:
+    lines = f.readlines()
+
+# keep 61 % of lines, this matches the ratio of original icsd to mp icsd
+shortened_dataset = int(len(lines) * 0.61)
+
+# Write back only the first 61% lines
+with open("stadard_neg_neg_ex_tr_val_v5_balanced_shuffled_shortened.txt", 'w') as f:
+    f.writelines(lines[:-shortened_dataset])
+
+# %%
 
 def make_negative_data(
     num_examples, max_atoms=5, max_coefficient=11, seed=3, weighted=False
