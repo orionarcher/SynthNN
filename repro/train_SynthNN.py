@@ -188,7 +188,7 @@ def random_lines(filename, file_size, num_samples):
 def get_batch_val(neg_positive_ratio):
     random.seed(3)
     np.random.seed(3)
-    noTr_positives = 48200  # number positive examples in train set
+    noTr_positives = 29000  # number positive examples in train set
     noTr_negatives = (
         noTr_positives * neg_positive_ratio
     )  # no. negatives examples in train set
@@ -275,7 +275,7 @@ def get_batch(
         np.random.seed()
     num_positive_examples = int(np.floor(batch_size * (1 / (1 + neg_positive_ratio))))
     num_negative_examples = batch_size - num_positive_examples
-    noTr_positives = 48200  # number positive examples in train set
+    noTr_positives = 29000  # number positive examples in train set
     noTr_negatives = (
         noTr_positives * neg_positive_ratio
     )  # no. negatives examples in train set
@@ -515,6 +515,7 @@ random.seed()
 M = 30
 tf.compat.v1.disable_eager_execution()
 randint = np.random.randint(0, 5, 5)
+randint = [1, 2, 2, 3, 1]
 tstep = [1e-2, 5e-3, 2e-3, 5e-4, 2e-4][randint[0]]
 num_steps = 800000
 no_h1 = [30, 40, 50, 60, 80][randint[1]]
@@ -597,7 +598,7 @@ b3_val = []
 print("Model Initial Training")
 
 # change to semi_starting
-for i in range(semi_starting):  # TODO: change to semi-starting
+for i in range(100):  # TODO: change to semi-starting
     epoch_counter = epoch_counter + 1
     batchx, batchy, batch_data, weights, idxs = get_batch(
         batch_size, neg_pos_ratio, use_semi_weights=False, model_name=model_name_params
@@ -606,6 +607,8 @@ for i in range(semi_starting):  # TODO: change to semi-starting
     random.shuffle(indB)
     current_weights = full_weights[indB[0:batch_size], :]
     train_step.run(feed_dict={x: batchx, y_: batchy, semi_weights: current_weights})
+    if i % 100 == 0:
+        print("step: ", i)
     if i % 1000 == 0:
         preds = a3.eval(feed_dict={x: xval, y_: yval, semi_weights: full_weights})
         TP, FP, TN, FN = perf_measure(np.array(yval)[:, 0], np.array(preds)[:, 0])
@@ -630,53 +633,55 @@ for i in range(semi_starting):  # TODO: change to semi-starting
             b3_val = sess.run(b3)
 
 # print out all preds to a file (for weighting for semi-supervised learning)
-file_output = open("semi_weights_testing_pos_30M" + model_name_params + ".txt", "a")
-file_positives = open(POSITIVE_SAMPLE_FILE, "r")
-Lines = file_positives.readlines()
-for line in Lines:
-    xtr = get_features([line.replace("\n", "")])
-    ytr = [[0, 1]]
-    pred = a3.eval(
-        feed_dict={
-            x: xtr,
-            y_: ytr,
-            semi_weights: current_weights,
-            W1: W1_val,
-            F1: F1_val,
-            F2: F2_val,
-            F3: F3_val,
-            b1: b1_val,
-            b2: b2_val,
-            b3: b3_val,
-        }
-    )
-    file_output.write(line.replace("\n", "") + " " + str(pred[0][0]) + "\n")
-file_positives.close()
-file_output.close()
-file_output = open("semi_weights_testing_neg_30M" + model_name_params + ".txt", "a")
-file_negatives = open(NEGATIVE_SAMPLE_FILE, "r")
-Lines = file_negatives.readlines()
-for line in Lines:
-    xtr = get_features([line.replace("\n", "")])
-    ytr = [[0, 1]]
-    pred = a3.eval(
-        feed_dict={
-            x: xtr,
-            y_: ytr,
-            semi_weights: current_weights,
-            W1: W1_val,
-            F1: F1_val,
-            F2: F2_val,
-            F3: F3_val,
-            b1: b1_val,
-            b2: b2_val,
-            b3: b3_val,
-        }
-    )
-    file_output.write(line.replace("\n", "") + " " + str(pred[0][0]) + "\n")
-file_negatives.close()
-file_output.close()
-sess.close()
+# print("Model Testing on Positives")
+# file_output = open("semi_weights_testing_pos_30M" + model_name_params + ".txt", "a")
+# file_positives = open(POSITIVE_SAMPLE_FILE, "r")
+# Lines = file_positives.readlines()
+# for line in Lines:
+#     xtr = get_features([line.replace("\n", "")])
+#     ytr = [[0, 1]]
+#     pred = a3.eval(
+#         feed_dict={
+#             x: xtr,
+#             y_: ytr,
+#             semi_weights: current_weights,
+#             W1: W1_val,
+#             F1: F1_val,
+#             F2: F2_val,
+#             F3: F3_val,
+#             b1: b1_val,
+#             b2: b2_val,
+#             b3: b3_val,
+#         }
+#     )
+#     file_output.write(line.replace("\n", "") + " " + str(pred[0][0]) + "\n")
+# file_positives.close()
+# file_output.close()
+# print("Model Testing on Negatives")
+# file_output = open("semi_weights_testing_neg_30M" + model_name_params + ".txt", "a")
+# file_negatives = open(NEGATIVE_SAMPLE_FILE, "r")
+# Lines = file_negatives.readlines()
+# for line in Lines:
+#     xtr = get_features([line.replace("\n", "")])
+#     ytr = [[0, 1]]
+#     pred = a3.eval(
+#         feed_dict={
+#             x: xtr,
+#             y_: ytr,
+#             semi_weights: current_weights,
+#             W1: W1_val,
+#             F1: F1_val,
+#             F2: F2_val,
+#             F3: F3_val,
+#             b1: b1_val,
+#             b2: b2_val,
+#             b3: b3_val,
+#         }
+#     )
+#     file_output.write(line.replace("\n", "") + " " + str(pred[0][0]) + "\n")
+# file_negatives.close()
+# file_output.close()
+# sess.close()
 
 print("Doing Semi-supervised Learning")
 np.random.seed()
@@ -729,6 +734,8 @@ for i in range(num_steps):  # TODO: changed to num_steps
     )
     weights = np.reshape(weights, [len(weights), 1])
     train_step.run(feed_dict={x: batchx, y_: batchy, semi_weights: weights})
+    if i % 100 == 0:
+        print("step: ", i)
     # loss_array.append([])
     if i % 1000 == 0:
         preds = a3.eval(feed_dict={x: xval, y_: yval, semi_weights: weights})
