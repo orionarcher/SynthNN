@@ -10,8 +10,22 @@ from pymatgen.core.periodic_table import Element
 import linecache
 
 POSITIVE_SAMPLE_FILE = "repro/icsd_positive.txt"
-NEGATIVE_SAMPLE_FILE = "Datasets/standard_neg_ex_tr_val_v5_balanced_shuffled.txt"
+NEGATIVE_SAMPLE_FILE = "repro/standard_neg_ex_tr_val_v5_balanced_shuffled.txt"
+OUTPUT_DIR = "repro/training_output/"
+# hyperparameters taken from 2020_best run
+MODEL_HYPERPARAMETERS = [1, 4, 1, 1, 2]
 
+# these select hyperparameters from the lists below:
+randint = MODEL_HYPERPARAMETERS
+tstep = [1e-2, 5e-3, 2e-3, 5e-4, 2e-4][randint[0]]
+no_h1 = [30, 40, 50, 60, 80][randint[1]]
+no_h2 = [30, 40, 50, 60, 80][randint[2]]
+batch_size = [512, 512, 1024, 1024, 1024][randint[3]]
+# steps in supervised stage
+semi_starting = [20000, 40000, 60000, 80000, 100000][randint[4]]
+
+# steps in semi-supervised stage
+num_steps = 800000
 
 def load_data(data, is_charge_balanced, max_atoms=5, max_coefficient=100000):
     # takes input file (icsd_full_properties_no_frac_charges) and processes the data and applies some filters
@@ -347,7 +361,7 @@ def get_batch(
     weights_full = []
     if use_semi_weights:
         weights1 = []
-        file = open("semi_weights_testing_pos_30M" + model_name + ".txt", "r")
+        file = open(OUTPUT_DIR + "semi_weights_testing_pos_30M" + model_name + ".txt", "r")
         content = file.readlines()
         weights1 = []
         for i in idxs1:
@@ -355,7 +369,7 @@ def get_batch(
         file.close()
 
         weights0 = []
-        file = open("semi_weights_testing_neg_30M" + model_name + ".txt", "r")
+        file = open(OUTPUT_DIR + "semi_weights_testing_neg_30M" + model_name + ".txt", "r")
         content = file.readlines()
         for i in idxs0:
             weights0.append(float(content[i - 1].split()[1]))
@@ -514,14 +528,14 @@ np.random.seed()
 random.seed()
 M = 30
 tf.compat.v1.disable_eager_execution()
-randint = np.random.randint(0, 5, 5)
-randint = [1, 2, 2, 3, 1]
-tstep = [1e-2, 5e-3, 2e-3, 5e-4, 2e-4][randint[0]]
-num_steps = 800000
-no_h1 = [30, 40, 50, 60, 80][randint[1]]
-no_h2 = [30, 40, 50, 60, 80][randint[2]]
-batch_size = [512, 512, 1024, 1024, 1024][randint[3]]
-semi_starting = [20000, 40000, 60000, 80000, 100000][randint[4]]
+# randint = np.random.randint(0, 5, 5)
+# randint = MODEL_HYPERPARAMETERS
+# tstep = [1e-2, 5e-3, 2e-3, 5e-4, 2e-4][randint[0]]
+# num_steps = 800000
+# no_h1 = [30, 40, 50, 60, 80][randint[1]]
+# no_h2 = [30, 40, 50, 60, 80][randint[2]]
+# batch_size = [512, 512, 1024, 1024, 1024][randint[3]]
+# semi_starting = [20000, 40000, 60000, 80000, 100000][randint[4]]
 
 neg_pos_ratio = 20
 weight_for_0 = (1 + neg_pos_ratio) / (2 * neg_pos_ratio)
@@ -598,7 +612,7 @@ b3_val = []
 print("Model Initial Training")
 
 # change to semi_starting
-for i in range(100):  # TODO: change to semi-starting
+for i in range(semi_starting):
     epoch_counter = epoch_counter + 1
     batchx, batchy, batch_data, weights, idxs = get_batch(
         batch_size, neg_pos_ratio, use_semi_weights=False, model_name=model_name_params
@@ -633,55 +647,56 @@ for i in range(100):  # TODO: change to semi-starting
             b3_val = sess.run(b3)
 
 # print out all preds to a file (for weighting for semi-supervised learning)
-# print("Model Testing on Positives")
-# file_output = open("semi_weights_testing_pos_30M" + model_name_params + ".txt", "a")
-# file_positives = open(POSITIVE_SAMPLE_FILE, "r")
-# Lines = file_positives.readlines()
-# for line in Lines:
-#     xtr = get_features([line.replace("\n", "")])
-#     ytr = [[0, 1]]
-#     pred = a3.eval(
-#         feed_dict={
-#             x: xtr,
-#             y_: ytr,
-#             semi_weights: current_weights,
-#             W1: W1_val,
-#             F1: F1_val,
-#             F2: F2_val,
-#             F3: F3_val,
-#             b1: b1_val,
-#             b2: b2_val,
-#             b3: b3_val,
-#         }
-#     )
-#     file_output.write(line.replace("\n", "") + " " + str(pred[0][0]) + "\n")
-# file_positives.close()
-# file_output.close()
-# print("Model Testing on Negatives")
-# file_output = open("semi_weights_testing_neg_30M" + model_name_params + ".txt", "a")
-# file_negatives = open(NEGATIVE_SAMPLE_FILE, "r")
-# Lines = file_negatives.readlines()
-# for line in Lines:
-#     xtr = get_features([line.replace("\n", "")])
-#     ytr = [[0, 1]]
-#     pred = a3.eval(
-#         feed_dict={
-#             x: xtr,
-#             y_: ytr,
-#             semi_weights: current_weights,
-#             W1: W1_val,
-#             F1: F1_val,
-#             F2: F2_val,
-#             F3: F3_val,
-#             b1: b1_val,
-#             b2: b2_val,
-#             b3: b3_val,
-#         }
-#     )
-#     file_output.write(line.replace("\n", "") + " " + str(pred[0][0]) + "\n")
-# file_negatives.close()
-# file_output.close()
-# sess.close()
+print("Model Testing on Positives")
+file_output = open(OUTPUT_DIR + "semi_weights_testing_pos_30M" + model_name_params + ".txt", "a")
+file_positives = open(POSITIVE_SAMPLE_FILE, "r")
+Lines = file_positives.readlines()
+for line in Lines:
+    xtr = get_features([line.replace("\n", "")])
+    ytr = [[0, 1]]
+    pred = a3.eval(
+        feed_dict={
+            x: xtr,
+            y_: ytr,
+            semi_weights: current_weights,
+            W1: W1_val,
+            F1: F1_val,
+            F2: F2_val,
+            F3: F3_val,
+            b1: b1_val,
+            b2: b2_val,
+            b3: b3_val,
+        }
+    )
+    file_output.write(line.replace("\n", "") + " " + str(pred[0][0]) + "\n")
+file_positives.close()
+file_output.close()
+
+print("Model Testing on Negatives")
+file_output = open(OUTPUT_DIR + "semi_weights_testing_neg_30M" + model_name_params + ".txt", "a")
+file_negatives = open(NEGATIVE_SAMPLE_FILE, "r")
+Lines = file_negatives.readlines()
+for line in Lines:
+    xtr = get_features([line.replace("\n", "")])
+    ytr = [[0, 1]]
+    pred = a3.eval(
+        feed_dict={
+            x: xtr,
+            y_: ytr,
+            semi_weights: current_weights,
+            W1: W1_val,
+            F1: F1_val,
+            F2: F2_val,
+            F3: F3_val,
+            b1: b1_val,
+            b2: b2_val,
+            b3: b3_val,
+        }
+    )
+    file_output.write(line.replace("\n", "") + " " + str(pred[0][0]) + "\n")
+file_negatives.close()
+file_output.close()
+sess.close()
 
 print("Doing Semi-supervised Learning")
 np.random.seed()
@@ -727,7 +742,7 @@ train_step = tf.compat.v1.train.AdamOptimizer(tstep).minimize(cross_entropy)
 sess.run(tf.compat.v1.initialize_all_variables())
 
 # change to num_steps
-for i in range(num_steps):  # TODO: changed to num_steps
+for i in range(num_steps):
     epoch_counter = epoch_counter + 1
     batchx, batchy, batch_data, weights, idxs = get_batch(
         batch_size, neg_pos_ratio, use_semi_weights=True, model_name=model_name_params
@@ -749,7 +764,7 @@ for i in range(num_steps):  # TODO: changed to num_steps
         performance_array.append([train_accuracy, val_accuracy, TP, FP, TN, FN])
         print([train_accuracy, val_accuracy, TP, FP, TN, FN])
         np.savetxt(
-            "performance_matrix_TL_v3_30M_" + model_name_params + ".txt",
+            OUTPUT_DIR + "performance_matrix_TL_v3_30M_" + model_name_params + ".txt",
             performance_array,
             fmt="%s",
         )
@@ -765,11 +780,11 @@ for i in range(num_steps):  # TODO: changed to num_steps
             b1_val = sess.run(b1)
             b2_val = sess.run(b2)
             b3_val = sess.run(b3)
-            np.savetxt("W1_" + model_name, W1_val)
-            np.savetxt("F1_" + model_name, F1_val)
-            np.savetxt("F2_" + model_name, F2_val)
-            np.savetxt("F3_" + model_name, F3_val)
-            np.savetxt("b1_" + model_name, b1_val)
-            np.savetxt("b2_" + model_name, b2_val)
-            np.savetxt("b3_" + model_name, b3_val)
+            np.savetxt(OUTPUT_DIR + "W1_" + model_name, W1_val)
+            np.savetxt(OUTPUT_DIR + "F1_" + model_name, F1_val)
+            np.savetxt(OUTPUT_DIR + "F2_" + model_name, F2_val)
+            np.savetxt(OUTPUT_DIR + "F3_" + model_name, F3_val)
+            np.savetxt(OUTPUT_DIR + "b1_" + model_name, b1_val)
+            np.savetxt(OUTPUT_DIR + "b2_" + model_name, b2_val)
+            np.savetxt(OUTPUT_DIR + "b3_" + model_name, b3_val)
 sess.close()
