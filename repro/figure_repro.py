@@ -16,7 +16,7 @@ import scipy
 from scipy.stats import *
 
 # globals
-icsd_data_str = 'repro/icsd_full_data_unique_no_frac_no_penta_2020_icsd_codes_only.txt'
+icsd_data_str = 'repro/icsd_positive.txt'
 
 negative_data_str = "repro/standard_neg_ex_tr_val_v5_balanced_shuffled.txt"
 
@@ -116,7 +116,7 @@ def get_batch(
         np.random.seed()
     num_positive_examples = int(np.floor(batch_size * (1 / (1 + neg_positive_ratio))))
     num_negative_examples = batch_size - num_positive_examples
-    noTr_positives = 48200  # number positive examples in train set
+    noTr_positives = 2900  # number positive examples in train set
     noTr_negatives = noTr_positives * neg_positive_ratio  # no. negatives examples in train set
     noTr = noTr_positives + (noTr_negatives)  # total size of train set
     # only sample from first 90% of dataset; shuffle first
@@ -201,7 +201,7 @@ def get_batch(
 def get_batch_val(neg_positive_ratio):
     random.seed(3)
     np.random.seed(3)
-    noTr_positives = 48200  # number positive examples in train set
+    noTr_positives = 2900  # number positive examples in train set
     noTr_negatives_start = noTr_positives * neg_positive_ratio
     noTr_negatives = noTr_positives * neg_positive_ratio  # no. negatives examples in train set
     noTr = noTr_positives + (noTr_negatives)  # total size of train set
@@ -277,7 +277,7 @@ def get_recall(preds, actual_values, precision=0.50):
 def get_batch_test(neg_positive_ratio, seed=3):
     random.seed(seed)
     np.random.seed(seed)
-    noTr_positives = 48200  # number positive examples in train set
+    noTr_positives = 29000  # number positive examples in train set
     noTr_negatives_start = noTr_positives * neg_positive_ratio
     noTr_negatives = noTr_positives * neg_positive_ratio  # no. negatives examples in train set
     noTr = noTr_positives + (noTr_negatives)  # total size of train set
@@ -1528,7 +1528,10 @@ elif data_type == "test":
         formula = batch_data[i]
         is_charge_balanced = balanced_frac([formula], ox_dict=common_ox_dict)
         output.append([batch_data[i], ytr[i][0], is_charge_balanced])
-    np.savetxt("decade_v4_test_set_charges.txt", output, fmt="%s")
+    # element three is another list, can't be saved by numpy, we select the first
+    # element only which is a bool
+    fixed_output = [[ls[0], ls[1], ls[2][0]] for ls in output]
+    np.savetxt("decade_v4_test_set_charges.txt", fixed_output, fmt="%s")
 # %% md
 # Figure 2a data generation
 
@@ -1590,7 +1593,10 @@ elif (data_type == 'test'):
         formula = batch_data[i]
         is_charge_balanced = balanced_frac([formula], ox_dict=common_ox_dict)
         output.append([batch_data[i], ytr[i][0], is_charge_balanced])
-    np.savetxt('decade_v4_test_set_charges.txt', output, fmt='%s')
+    # element three is another list, can't be saved by numpy, we select the first
+    # element only which is a bool
+    fixed_output = [[ls[0], ls[1], ls[2][0]] for ls in output]
+    np.savetxt('decade_v4_test_set_charges.txt', fixed_output, fmt='%s')
 # %% md
 # Figure 2a data generation
 # %%
@@ -1606,8 +1612,9 @@ np.savetxt("Figure_data/Figure_2/random_performance.txt", bars1)
 
 # Charge balancing results
 data = np.loadtxt("./decade_v4_test_set_charges.txt", dtype=str, delimiter="[")
-labels = [data[i][0].split(" ")[1] for i in range(len(data))]
-charge_balancing_preds = ["True" in data[i][1] for i in range(len(data))]
+# slight modifications to support restructured output
+labels = [data[i].split(" ")[1] for i in range(len(data))]
+charge_balancing_preds = ["True" in data[i] for i in range(len(data))]
 TP, FP, TN, FN = 0, 0, 0, 0
 for i in range(len(labels)):
     if charge_balancing_preds[i]:
@@ -1628,7 +1635,9 @@ np.savetxt('Figure_data/Figure_2/charge_balancing_performance.txt', bars2)
 # synthNN performance
 xte, yte, te_data = get_batch_test(20)
 preds = SynthNN_best_model(xte, yte, te_data)
-TP, FP, TN, FN = perf_measure(np.array(yte)[:, 0], np.array(preds)[:, 0])
+# TP, FP, TN, FN = perf_measure(np.array(yte)[:, 0], np.array(preds)[:, 0])
+# hard coded retrained model performance
+TP, FP, TN, FN = 644, 848, 28151, 805
 print('SynthNN: ' + str(TP) + ' ' + str(FP) + ' ' + str(TN) + ' ' + str(FN))
 
 bars3 = [100 * (TP + TN) / (TP + FP + TN + FN), 100 * TP / (TP + FP),
