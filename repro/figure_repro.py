@@ -17,9 +17,8 @@ from scipy.stats import *
 
 # globals
 icsd_data_str = 'repro/icsd_positive.txt'
-
 negative_data_str = "repro/standard_neg_ex_tr_val_v5_balanced_shuffled.txt"
-
+n_training_data = 29000
 
 # %%
 def balanced_frac(materials, ox_dict):
@@ -116,7 +115,7 @@ def get_batch(
         np.random.seed()
     num_positive_examples = int(np.floor(batch_size * (1 / (1 + neg_positive_ratio))))
     num_negative_examples = batch_size - num_positive_examples
-    noTr_positives = 2900  # number positive examples in train set
+    noTr_positives = n_training_data  # number positive examples in train set
     noTr_negatives = noTr_positives * neg_positive_ratio  # no. negatives examples in train set
     noTr = noTr_positives + (noTr_negatives)  # total size of train set
     # only sample from first 90% of dataset; shuffle first
@@ -201,7 +200,7 @@ def get_batch(
 def get_batch_val(neg_positive_ratio):
     random.seed(3)
     np.random.seed(3)
-    noTr_positives = 2900  # number positive examples in train set
+    noTr_positives = n_training_data  # number positive examples in train set
     noTr_negatives_start = noTr_positives * neg_positive_ratio
     noTr_negatives = noTr_positives * neg_positive_ratio  # no. negatives examples in train set
     noTr = noTr_positives + (noTr_negatives)  # total size of train set
@@ -277,7 +276,7 @@ def get_recall(preds, actual_values, precision=0.50):
 def get_batch_test(neg_positive_ratio, seed=3):
     random.seed(seed)
     np.random.seed(seed)
-    noTr_positives = 29000  # number positive examples in train set
+    noTr_positives = n_training_data  # number positive examples in train set
     noTr_negatives_start = noTr_positives * neg_positive_ratio
     noTr_negatives = noTr_positives * neg_positive_ratio  # no. negatives examples in train set
     noTr = noTr_positives + (noTr_negatives)  # total size of train set
